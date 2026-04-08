@@ -1,36 +1,73 @@
-📘 README — PWM por Software
-🔷 GPIO e PWM por Software (STM32)
-🎯 Objetivo
+# 📘 PWM por Software (STM32)
 
-Implementar um PWM por software utilizando GPIO para controlar o LED da placa NUCLEO-L476RG.
+## 🔷 GPIO e PWM por Software
 
-🧠 Conceito
+### 🎯 Objetivo
+Implementar um PWM por software utilizando GPIO para controlar o LED da placa **NUCLEO-L476RG**.
 
-PWM (Pulse Width Modulation) controla o tempo ligado/desligado de um sinal:
+---
 
-altera o brilho do LED
-simula saída analógica
-⚙️ Parâmetros
-Frequência
-freq = ciclos por segundo
-Duty Cycle
-% do tempo ligado
-🧮 Fórmulas
+## 🧠 Conceito
+
+PWM (*Pulse Width Modulation*) controla o tempo ligado/desligado de um sinal digital, permitindo:
+
+- Ajustar o brilho de um LED  
+- Simular uma saída analógica  
+
+---
+
+## ⚙️ Parâmetros
+
+- **Frequência (Frequency)**  
+  Número de ciclos por segundo  
+
+- **Duty Cycle (%)**  
+  Percentual do tempo em que o sinal permanece ligado  
+
+---
+
+## 🧮 Fórmulas
+
+```c
 period_ms = 1000 / frequency;
-on_time = (period_ms * duty) / 100;
-off_time = period_ms - on_time;
-🔌 Hardware
-Item	Valor
-Placa	NUCLEO-L476RG
-LED	LD2
-Pino	PA5
-⚙️ Configuração
+on_time   = (period_ms * duty) / 100;
+off_time  = period_ms - on_time;
+```
+
+---
+
+## 🔌 Hardware
+
+| Item  | Valor            |
+|------|------------------|
+| Placa | NUCLEO-L476RG   |
+| LED   | LD2             |
+| Pino  | PA5             |
+
+---
+
+## ⚙️ Configuração
+
+```c
 PA5 → GPIO_Output
-💻 Implementação
-🔧 Defines
+```
+
+---
+
+## 💻 Implementação
+
+### 🔧 Defines
+
+```c
 #define PWM_FREQUENCY_HZ    2
 #define DUTY_CYCLE_PERCENT  25
-⚡ Função PWM
+```
+
+---
+
+### ⚡ Função PWM
+
+```c
 void software_pwm(uint16_t frequency, uint8_t duty_cycle)
 {
   uint32_t period = 1000 / frequency;
@@ -43,47 +80,85 @@ void software_pwm(uint16_t frequency, uint8_t duty_cycle)
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
   HAL_Delay(off);
 }
-🔁 Loop principal
+```
+
+---
+
+### 🔁 Loop Principal
+
+```c
 while (1)
 {
   software_pwm(PWM_FREQUENCY_HZ, DUTY_CYCLE_PERCENT);
 }
-🧪 Casos de Teste
-🔥 Caso 1 — 25%
-Estado	Tempo
-ON	125 ms
-OFF	375 ms
+```
 
-👉 LED pisca rápido e fica mais apagado
+---
 
-🔥 Caso 2 — 80%
-DUTY_CYCLE_PERCENT = 80
+## 🧪 Casos de Teste
 
-👉 LED quase sempre ligado
+### 🔥 Caso 1 — 25%
 
-🔥 Caso 3 — 10%
-DUTY_CYCLE_PERCENT = 10
+| Estado | Tempo   |
+|--------|--------|
+| ON     | 125 ms |
+| OFF    | 375 ms |
 
-👉 LED dá flashes rápidos
+👉 LED pisca rápido e fica mais apagado  
 
-⚡ Caso 4 — Alta frequência
-PWM_FREQUENCY_HZ = 20
+---
 
-👉 LED parece brilho contínuo
+### 🔥 Caso 2 — 80%
 
-⚠️ Limitações
-Usa HAL_Delay → bloqueia CPU
-Baixa precisão
-Não recomendado para sistemas reais
-🚀 Melhorias
-PWM por hardware (TIM)
-Controle de múltiplos LEDs
-Uso de RTOS
-Ajuste via botão
-🧠 Conclusão
+```c
+#define DUTY_CYCLE_PERCENT 80
+```
 
-O projeto demonstra claramente:
+👉 LED permanece quase sempre ligado  
 
-controle de sinal digital
-impacto do duty cycle
-comportamento visual do PWM
+---
+
+### 🔥 Caso 3 — 10%
+
+```c
+#define DUTY_CYCLE_PERCENT 10
+```
+
+👉 LED apresenta flashes rápidos  
+
+---
+
+### ⚡ Caso 4 — Alta Frequência
+
+```c
+#define PWM_FREQUENCY_HZ 20
+```
+
+👉 LED aparenta brilho contínuo  
+
+---
+
+## ⚠️ Limitações
+
+- Uso de `HAL_Delay()` → bloqueia a CPU  
+- Baixa precisão de temporização  
+- Não recomendado para aplicações críticas  
+
+---
+
+## 🚀 Melhorias Futuras
+
+- Utilizar PWM por hardware (Timers - TIM)  
+- Controle de múltiplos LEDs  
+- Integração com RTOS  
+- Ajuste dinâmico via botão ou interface  
+
+---
+
+## 🧠 Conclusão
+
+Este projeto demonstra de forma clara:
+
+- Controle de sinais digitais  
+- Impacto do duty cycle no comportamento do LED  
+- Funcionamento prático do PWM  
