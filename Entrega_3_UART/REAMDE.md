@@ -3,18 +3,6 @@
 > Sistemas Embarcados — UPE/POLI
 > Implementação de um sistema cliente-servidor usando as placas **NUCLEO-L476RG** e **STM32F407G-DISC1**, comunicação via UART com interrupção e DMA, controle de LED por cadência e transmissão de tabela da equipe para o PC.
 
----
-
-## Equipe
-
-| Nome | Matrícula |
-|---|---|
-| Guilherme Galindo | 14498024435 |
-| Bruna Cruz | 70907682448 |
-| Vitor Queiroz | 10363931430 |
-
----
-
 ## Sumário
 
 - [Visão Geral](#visão-geral)
