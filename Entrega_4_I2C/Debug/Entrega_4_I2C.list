@@ -1,5 +1,5 @@
 
-I2C.elf:     file format elf32-littlearm
+Entrega_4_I2C.elf:     file format elf32-littlearm
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn

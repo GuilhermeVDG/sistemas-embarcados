@@ -1,5 +1,5 @@
 
-PWM_SOFTWARE_LED.elf:     file format elf32-littlearm
+Entrega_1_PWM.elf:     file format elf32-littlearm
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
