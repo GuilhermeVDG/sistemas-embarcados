@@ -1,0 +1,16 @@
+../Core/Src/main.c:82:6:debug_print	16	static
+../Core/Src/main.c:87:6:blink_startup	16	static
+../Core/Src/main.c:104:5:main	8	static
+../Core/Src/main.c:170:6:SystemClock_Config	96	static
+../Core/Src/main.c:214:13:MX_I2C1_Init	8	static
+../Core/Src/main.c:247:13:MX_USART2_UART_Init	8	static
+../Core/Src/main.c:271:13:MX_USART3_UART_Init	8	static
+../Core/Src/main.c:295:13:MX_GPIO_Init	48	static
+../Core/Src/main.c:320:6:process_command	32	static
+../Core/Src/main.c:383:6:pcf8591_read_channel	16	static
+../Core/Src/main.c:398:6:pcf8591_set_dac	16	static
+../Core/Src/main.c:414:6:HAL_UART_RxCpltCallback	16	static
+../Core/Src/main.c:447:6:HAL_I2C_MasterTxCpltCallback	16	static
+../Core/Src/main.c:473:6:HAL_I2C_MasterRxCpltCallback	24	static
+../Core/Src/main.c:516:6:HAL_I2C_ErrorCallback	16	static
+../Core/Src/main.c:538:6:Error_Handler	8	static,ignoring_inline_asm
