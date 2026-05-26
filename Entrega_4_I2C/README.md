@@ -1,85 +1,114 @@
-# Entrega 4 - Comunicacao I2C com PCF8591
+# Lista 4 - Comunicacao I2C com PCF8591
 
-## Objetivo
+> Sistemas Embarcados - UPE/POLI
+> Implementacao de comunicacao **I2C** entre a **NUCLEO-L476RG** e o modulo **PCF8591**, com comandos enviados pelo terminal serial via **USART2**.
 
-Implementar uma comunicacao I2C entre a placa **NUCLEO-L476RG** e o modulo **PCF8591**, usando comandos enviados pelo terminal serial para:
+## Sumario
 
-- Ler entradas analogicas do PCF8591.
-- Enviar valores para o DAC do PCF8591.
-- Exibir no terminal o resultado das operacoes.
-- Usar chamadas nao bloqueantes da HAL para a comunicacao I2C.
+- [Visao Geral](#visao-geral)
+- [Arquitetura do Sistema](#arquitetura-do-sistema)
+- [Hardware Utilizado](#hardware-utilizado)
+- [Pinagem e Conexoes](#pinagem-e-conexoes)
+- [Configuracao dos Perifericos](#configuracao-dos-perifericos)
+- [Comandos do Terminal](#comandos-do-terminal)
+- [Fluxo de Execucao](#fluxo-de-execucao)
+- [Estrutura do Codigo](#estrutura-do-codigo)
+- [Como Compilar e Gravar](#como-compilar-e-gravar)
+- [Como Testar](#como-testar)
+- [Estrutura dos Diretorios](#estrutura-dos-diretorios)
+- [Tecnologias e Ferramentas](#tecnologias-e-ferramentas)
+- [Criterios de Avaliacao Atendidos](#criterios-de-avaliacao-atendidos)
+
+---
+
+## Visao Geral
+
+Este projeto implementa um sistema embarcado em que a NUCLEO-L476RG atua como **master I2C** e conversa com o PCF8591, um conversor ADC/DAC de 8 bits. O usuario envia comandos pelo terminal serial para ler sensores analogicos ou escrever um valor no DAC.
+
+### Objetivos tecnicos atendidos
+
+- Comunicacao I2C entre STM32 e PCF8591.
+- Leitura dos canais analogicos AIN0, AIN1 e AIN3.
+- Escrita na saida analogica DAC do PCF8591.
+- Recepcao de comandos via UART por interrupcao.
+- Operacoes I2C nao bloqueantes usando callbacks da HAL.
+- Mensagens de resposta e diagnostico no terminal serial.
+
+---
+
+## Arquitetura do Sistema
+
+```text
++-------------------+        USART2 / USB        +-------------------+
+|                   |<-------------------------->|                   |
+|  PC / Tera Term   |                            |  NUCLEO-L476RG    |
+|  115200 8N1       |                            |  Master I2C       |
++-------------------+                            +---------+---------+
+                                                        |
+                                                        | I2C1
+                                                        | PB8/PB9
+                                                        v
+                                               +--------+---------+
+                                               |                  |
+                                               |  PCF8591         |
+                                               |  ADC/DAC 8 bits  |
+                                               |                  |
+                                               +------------------+
+```
 
 ---
 
 ## Hardware Utilizado
 
-| Item | Descricao | Uso no projeto |
-|------|-----------|----------------|
-| NUCLEO-L476RG | Placa principal STM32 | Cliente/master I2C e interface com o PC |
-| PCF8591 | Modulo ADC/DAC I2C | Servidor/slave I2C |
-| STM32F4 Discovery | Outra placa STM32 | Nao utilizada nesta entrega |
+| Componente | Descricao | Uso no projeto |
+|---|---|---|
+| NUCLEO-L476RG | Placa STM32 principal | Master I2C e interface com o PC |
+| PCF8591 | Modulo ADC/DAC I2C | Slave I2C |
+| Cabo USB | Alimentacao, gravacao e terminal serial | USART2 via ST-LINK |
+| Jumpers | Fios de conexao | Barramento I2C e alimentacao |
 
 ---
 
-## Ligacoes Fisicas
+## Pinagem e Conexoes
 
-| PCF8591 | NUCLEO-L476RG |
-|---------|---------------|
-| VCC | 3V3 |
-| GND | GND |
-| SCL | SCL/D15 |
-| SDA | SDA/D14 |
+### PCF8591 para NUCLEO-L476RG
 
-Use **3V3** para manter o modulo compativel com os niveis logicos da NUCLEO-L476RG.
+| PCF8591 | NUCLEO-L476RG | Funcao |
+|---|---|---|
+| VCC | 3V3 | Alimentacao |
+| GND | GND | Referencia comum |
+| SCL | D15 / PB8 | I2C1_SCL |
+| SDA | D14 / PB9 | I2C1_SDA |
 
-### Observacao sobre D14 e D15
+> Importante: use **3V3** para manter compatibilidade com os niveis logicos da NUCLEO-L476RG.
 
-No STM32CubeMX, os pinos normalmente aparecem pelo nome real do microcontrolador, e nao pelo nome Arduino impresso na placa. Entao:
+### Mapeamento dos sensores do modulo
 
-| Nome na placa | Nome no STM32CubeMX | Funcao |
-|---------------|---------------------|--------|
-| D15 / SCL | PB8 | I2C1_SCL |
-| D14 / SDA | PB9 | I2C1_SDA |
-
-Portanto, selecionar **PB8** e **PB9** no CubeMX esta correto.
-
----
-
-## Configuracao do Modulo PCF8591
-
-| Jumper | Funcao | Estado |
-|--------|--------|--------|
-| J5 | LDR no AIN0 | Conectado |
-| J4 | Termistor no AIN1 | Conectado |
-| J6 | Potenciometro no AIN3 | Conectado |
+| Jumper | Funcao | Canal |
+|---|---|---|
+| J5 | LDR | AIN0 |
+| J4 | Termistor | AIN1 |
+| J6 | Potenciometro | AIN3 |
 
 O canal AIN2 nao foi usado nesta entrega.
 
 ---
 
-## Configuracao no STM32CubeMX / STM32CubeIDE
-
-### Placa
-
-Projeto criado para:
-
-```text
-NUCLEO-L476RG
-```
+## Configuracao dos Perifericos
 
 ### I2C1
 
 | Parametro | Valor |
-|-----------|-------|
+|---|---|
 | Periferico | I2C1 |
-| Modo | I2C |
 | Papel da NUCLEO | Master |
 | Velocidade | Standard Mode |
 | Frequencia | 100 kHz |
 | SCL | PB8 / D15 |
 | SDA | PB9 / D14 |
+| Endereco PCF8591 | `0x48 << 1` |
 
-O PCF8591 trabalha no barramento I2C com endereco base `0x48`. Na HAL do STM32 o endereco de 7 bits e passado deslocado para a esquerda:
+Na HAL do STM32, o endereco de 7 bits deve ser deslocado para a esquerda:
 
 ```c
 #define PCF8591_ADDR (0x48 << 1)
@@ -87,58 +116,42 @@ O PCF8591 trabalha no barramento I2C com endereco base `0x48`. Na HAL do STM32 o
 
 ### UART
 
-O projeto possui `USART2` e `USART3` configuradas, ambas em:
-
 | Parametro | Valor |
-|-----------|-------|
+|---|---|
+| Terminal usado | USART2 |
 | Baud rate | 115200 |
 | Word length | 8 bits |
 | Parity | None |
 | Stop bits | 1 |
 | Modo | TX/RX |
 
-Embora a especificacao da atividade cite `USART3`, o codigo atual usa **USART2** para o terminal porque a NUCLEO-L476RG normalmente conecta a porta USB/ST-LINK do PC na `USART2`.
-
-No codigo:
-
-```c
-HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
-```
-
-e as mensagens de debug sao enviadas por:
-
-```c
-HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), 100);
-```
+A `USART3` tambem esta configurada no projeto, mas o `main.c` usa a **USART2** porque ela e a porta ligada ao ST-LINK/USB da NUCLEO-L476RG.
 
 ### NVIC
 
-Interrupcoes habilitadas no projeto:
-
 | Interrupcao | Uso |
-|-------------|-----|
-| I2C1_EV_IRQn | Eventos de transmissao/recepcao I2C |
+|---|---|
+| I2C1_EV_IRQn | Eventos de transmissao e recepcao I2C |
 | I2C1_ER_IRQn | Tratamento de erro I2C |
-| USART2_IRQn | Recepcao de comandos pelo terminal |
+| USART2_IRQn | Recepcao de comandos do terminal |
 | USART3_IRQn | Mantida configurada no projeto |
 
 ---
 
 ## Comandos do Terminal
 
-Abra um terminal serial em:
+Configure o terminal em:
 
 ```text
 115200 baud
-8 bits
+8 data bits
 No parity
 1 stop bit
+Line ending: CR/LF ou Enter
 ```
 
-Comandos implementados:
-
 | Comando | Acao esperada |
-|---------|---------------|
+|---|---|
 | `Read_AIN0` | Le o LDR conectado ao AIN0 |
 | `Read_AIN1` | Le o termistor conectado ao AIN1 |
 | `Read_AIN3` | Le o potenciometro conectado ao AIN3 |
@@ -156,100 +169,30 @@ com `<valor>` entre `0` e `255`.
 
 ---
 
-## Resultado Esperado
-
-Ao iniciar o sistema, o terminal deve mostrar:
+## Fluxo de Execucao
 
 ```text
-Sistema iniciado na USART2
-Terminal: Tera Term / COM3 / 115200
-I2C1: PCF8591 endereco 0x48
-Comandos disponiveis:
-Read_AIN0
-Read_AIN1
-Read_AIN3
-Set_DAC_0 ate Set_DAC_255
-```
-
-### Teste 1 - Leitura do LDR
-
-Comando:
-
-```text
-Read_AIN0
-```
-
-Saida esperada:
-
-```text
-Comando recebido: Read_AIN0
-Lendo AIN0...
-AIN0: <valor>
-```
-
-O valor deve mudar ao tampar ou iluminar o LDR.
-
-### Teste 2 - Leitura do termistor
-
-Comando:
-
-```text
-Read_AIN1
-```
-
-Saida esperada:
-
-```text
-Comando recebido: Read_AIN1
-Lendo AIN1...
-AIN1: <valor>
-```
-
-O valor deve mudar ao aquecer o termistor com o dedo por alguns segundos.
-
-### Teste 3 - Leitura do potenciometro
-
-Comando:
-
-```text
-Read_AIN3
-```
-
-Saida esperada:
-
-```text
-Comando recebido: Read_AIN3
-Lendo AIN3...
-AIN3: <valor>
-```
-
-Ao girar o trimpot branco do modulo PCF8591, o valor deve variar entre proximo de `0` e proximo de `255`.
-
-### Teste 4 - Escrita no DAC
-
-Comando:
-
-```text
-Set_DAC_128
-```
-
-Saida esperada:
-
-```text
-Comando recebido: Set_DAC_128
-Enviando DAC: 128
-Valor do DAC confirmado: 128
-```
-
-Com alimentacao em `3V3`, a saida `AOUT` deve ficar aproximadamente em metade da alimentacao:
-
-```text
-AOUT ~= 1,65 V
++------------------------------------------------------------------+
+| 1. Sistema inicializa GPIO, USART2, I2C1 e USART3                |
+| 2. LED LD2 pisca tres vezes como indicacao de startup            |
+| 3. Menu de comandos e enviado ao terminal                        |
+| 4. USART2 fica armada com HAL_UART_Receive_IT()                  |
+| 5. Usuario digita comando e pressiona Enter                      |
+| 6. Callback UART monta a string recebida                         |
+| 7. Loop principal chama process_command()                        |
+| 8. Se for leitura ADC:                                           |
+|      +-> envia byte de controle via I2C IT                       |
+|      +-> callback Tx completa inicia Receive IT                  |
+|      +-> callback Rx imprime AINx no terminal                    |
+| 9. Se for escrita DAC:                                           |
+|      +-> envia enable DAC + valor via I2C IT                     |
+|      +-> callback Tx confirma valor no terminal                  |
++------------------------------------------------------------------+
 ```
 
 ---
 
-## Implementacao
+## Estrutura do Codigo
 
 ### Defines principais
 
@@ -264,104 +207,139 @@ AOUT ~= 1,65 V
 #define RX_BUFFER_SIZE     64
 ```
 
-### Inicializacao
+### Recepcao UART
 
-No inicio da aplicacao, o codigo:
-
-- Inicializa GPIO, USART2, I2C1 e USART3.
-- Pisca o LED `LD2` tres vezes.
-- Envia um menu de comandos pelo terminal.
-- Inicia a recepcao por interrupcao na `USART2`.
+A recepcao de comandos e feita byte a byte por interrupcao:
 
 ```c
-blink_startup();
 HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
 ```
 
-### Processamento de comandos
+Quando chega `\r` ou `\n`, o comando e marcado como pronto e processado no loop principal.
 
-A funcao `process_command()` remove quebras de linha e espacos finais, imprime o comando recebido e executa a acao correspondente:
+### Leitura ADC
 
-```c
-if (strcmp(cmd, "Read_AIN0") == 0)
-{
-  pcf8591_read_channel(PCF8591_CH0);
-}
-else if (strncmp(cmd, "Set_DAC_", 8) == 0)
-{
-  pcf8591_set_dac((uint8_t)dac_value);
-}
-```
+Para ler um canal analogico, o codigo:
 
-### Leitura ADC do PCF8591
-
-Para ler um canal analogico:
-
-1. O codigo envia o byte de controle com o canal desejado.
-2. Ao terminar a transmissao I2C, o callback inicia a recepcao.
-3. Sao lidos dois bytes.
-4. O segundo byte e usado como valor valido.
+1. Envia o byte do canal desejado.
+2. Inicia recepcao I2C de 2 bytes no callback de transmissao.
+3. Usa o segundo byte como valor valido.
 
 ```c
 HAL_I2C_Master_Transmit_IT(&hi2c1, PCF8591_ADDR, i2c_tx_buffer, 1);
 HAL_I2C_Master_Receive_IT(&hi2c1, PCF8591_ADDR, i2c_rx_buffer, 2);
 ```
 
-O segundo byte e usado porque o PCF8591 pode retornar primeiro o resultado da conversao anterior:
-
-```c
-uint8_t value = i2c_rx_buffer[1];
-```
-
 ### Escrita DAC
 
-Para escrever no DAC:
-
-1. O primeiro byte habilita o DAC.
-2. O segundo byte contem o valor de saida.
-3. O valor aceito vai de `0` a `255`.
+Para escrever no DAC, sao enviados dois bytes:
 
 ```c
 i2c_tx_buffer[0] = PCF8591_DAC_ENABLE;
 i2c_tx_buffer[1] = value;
-
-HAL_I2C_Master_Transmit_IT(&hi2c1, PCF8591_ADDR, i2c_tx_buffer, 2);
 ```
 
 ---
 
-## Decisoes Tecnicas
+## Como Compilar e Gravar
 
-- Foi usado `I2C1` como master porque o PCF8591 trabalha como dispositivo slave no barramento I2C.
-- O endereco `0x48` foi deslocado com `<< 1` para seguir o formato esperado pela HAL.
-- A leitura ADC usa dois bytes e considera o segundo para evitar usar uma conversao antiga do PCF8591.
-- As operacoes I2C usam funcoes com final `_IT`, como `HAL_I2C_Master_Transmit_IT()` e `HAL_I2C_Master_Receive_IT()`, para atender ao requisito de comunicacao nao bloqueante.
-- A comunicacao de terminal foi feita pela `USART2`, pois ela e a UART ligada ao ST-LINK/USB da NUCLEO-L476RG e permite testar diretamente pelo cabo USB.
-- A `USART3` foi mantida configurada no projeto, mas nao e a UART usada pelo `main.c` atual para comandos.
-- O LED `LD2` pisca na inicializacao e tambem alterna a cada byte recebido por UART, servindo como prova visual de que o firmware esta rodando e recebendo dados.
-- O tratamento de erro I2C imprime o codigo retornado por `HAL_I2C_GetError()`, facilitando diagnostico de fiacao, endereco ou ausencia do modulo.
+```text
+1. Abrir o STM32CubeIDE.
+2. File -> Open Projects from File System.
+3. Selecionar a pasta Entrega_4_I2C.
+4. Project -> Build Project.
+5. Conectar a NUCLEO-L476RG via USB.
+6. Run -> Debug As -> STM32 C/C++ Application.
+7. Apos gravar, abrir o terminal serial na COM do ST-LINK.
+```
 
 ---
 
-## Problemas Comuns
+## Como Testar
+
+### Inicializacao
+
+Ao resetar a placa, o terminal deve exibir:
+
+```text
+Sistema iniciado na USART2
+Terminal: Tera Term / COM3 / 115200
+I2C1: PCF8591 endereco 0x48
+Comandos disponiveis:
+Read_AIN0
+Read_AIN1
+Read_AIN3
+Set_DAC_0 ate Set_DAC_255
+```
+
+### Testes principais
+
+| Teste | Comando | Resultado esperado |
+|---|---|---|
+| Leitura do LDR | `Read_AIN0` | Valor muda ao iluminar/tampar o LDR |
+| Leitura do termistor | `Read_AIN1` | Valor muda ao aquecer o sensor |
+| Leitura do potenciometro | `Read_AIN3` | Valor varia ao girar o trimpot |
+| Escrita no DAC | `Set_DAC_128` | Terminal confirma valor 128 |
+
+Com alimentacao em `3V3`, `Set_DAC_128` deve produzir aproximadamente:
+
+```text
+AOUT ~= 1,65 V
+```
+
+### Problemas comuns
 
 | Problema | Possivel causa | Verificacao |
-|----------|----------------|-------------|
-| Nada aparece no terminal | Porta COM errada ou UART errada | Usar COM do ST-LINK, 115200 8N1 |
-| LED nao pisca ao iniciar | Firmware nao esta executando | Conferir gravacao/debug |
-| LED pisca ao digitar, mas nao responde | Enter nao esta sendo enviado | Configurar terminal para enviar CR/LF |
-| Erro I2C no terminal | Fios SDA/SCL invertidos ou modulo sem alimentacao | Conferir PB8/PB9, GND e 3V3 |
-| Leitura sempre igual | Jumpers do modulo ou sensor sem variacao | Conferir J4, J5 e J6 |
-| DAC nao altera AOUT | Medicao no ponto errado ou valor invalido | Medir AOUT e usar `Set_DAC_128` |
+|---|---|---|
+| Nada aparece no terminal | Porta COM errada | Usar COM do ST-LINK |
+| LED pisca ao digitar, mas nao responde | Enter nao enviado | Configurar CR/LF |
+| Erro I2C | SDA/SCL invertidos | Conferir PB8/PB9 |
+| Leitura sempre igual | Sensor sem variacao ou jumper ausente | Conferir J4, J5 e J6 |
+| DAC nao altera AOUT | Valor invalido ou medicao incorreta | Medir AOUT e usar `Set_DAC_128` |
 
 ---
 
-## Conclusao
+## Estrutura dos Diretorios
 
-Este projeto demonstra:
+```text
+Entrega_4_I2C/
++-- Core/
+|   +-- Inc/                 # Headers do projeto
+|   +-- Src/                 # main.c, callbacks e inicializacao
++-- Drivers/                 # HAL e CMSIS
++-- Debug/                   # Saida de build
++-- Entrega_4_I2C.ioc        # Configuracao do STM32CubeMX
++-- STM32L476RGTX_FLASH.ld   # Linker script para Flash
++-- README.md
+```
 
-- Comunicacao entre STM32 e PCF8591 via I2C.
-- Controle por comandos enviados pelo terminal serial.
-- Leitura de sensores analogicos pelo ADC do PCF8591.
-- Escrita em saida analogica pelo DAC do PCF8591.
-- Uso de interrupcoes e callbacks da HAL para comunicacao nao bloqueante.
+---
+
+## Tecnologias e Ferramentas
+
+- **Linguagem:** C.
+- **IDE:** STM32CubeIDE.
+- **Configurador:** STM32CubeMX.
+- **HAL:** STM32Cube HAL.
+- **Comunicacao:** I2C, UART e callbacks de interrupcao.
+- **Terminal:** Tera Term, PuTTY ou similar.
+- **Debugger:** ST-LINK.
+
+---
+
+## Criterios de Avaliacao Atendidos
+
+- [x] NUCLEO-L476RG configurada como master I2C.
+- [x] PCF8591 conectado e enderecado em `0x48`.
+- [x] Leitura dos canais AIN0, AIN1 e AIN3.
+- [x] Escrita de valores entre 0 e 255 no DAC.
+- [x] Interface por terminal serial.
+- [x] Recepcao UART por interrupcao.
+- [x] Comunicacao I2C com funcoes `_IT`.
+- [x] Callbacks de transmissao, recepcao e erro I2C implementados.
+
+---
+
+## Licenca
+
+Projeto desenvolvido para fins academicos no ambito da disciplina de Sistemas Embarcados da UPE/POLI.
