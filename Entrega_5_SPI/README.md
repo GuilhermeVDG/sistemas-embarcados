@@ -183,11 +183,11 @@ Configure o terminal em `115200 8N1` e envie os comandos com Enter.
 | 3. MAX7219 e configurado e a matriz e limpa                         |
 | 4. Menu de comandos e enviado ao terminal                           |
 | 5. Padrao de teste aparece por 1 segundo e depois a matriz apaga    |
-| 6. Loop principal executa duas tarefas:                             |
-|      +-> UART_CheckCommand(): recebe comandos do terminal           |
-|      +-> Display_UpdateTask(): alterna caractere a cada 500 ms      |
-| 7. Comandos Temp/Volt/LDR acessam o PCF8591 via I2C                 |
-| 8. A matriz e atualizada com a letra da grandeza e o sinal via SPI  |
+| 6. USART2 recebe comandos por interrupcao                           |
+| 7. Loop principal processa comandos prontos                         |
+| 8. Display_UpdateTask() alterna caractere a cada 500 ms             |
+| 9. Comandos Temp/Volt/LDR acessam o PCF8591 via I2C                 |
+| 10. A matriz e atualizada com a letra da grandeza e o sinal via SPI |
 +---------------------------------------------------------------------+
 ```
 
@@ -232,9 +232,9 @@ HAL_GPIO_WritePin(MAX7219_CS_GPIO_Port, MAX7219_CS_Pin, GPIO_PIN_SET);
 A leitura usa dois bytes e considera o segundo como valor valido:
 
 ```c
-HAL_I2C_Master_Transmit(&hi2c1, PCF8591_ADDR, &control_byte, 1, 100);
-HAL_I2C_Master_Receive(&hi2c1, PCF8591_ADDR, rx_data, 2, 100);
-*value = rx_data[1];
+HAL_I2C_Master_Transmit_IT(&hi2c1, PCF8591_ADDR, i2c_tx_buffer, 1);
+HAL_I2C_Master_Receive_IT(&hi2c1, PCF8591_ADDR, i2c_rx_buffer, 2);
+value = i2c_rx_buffer[1];
 ```
 
 ### Atualizacao da matriz
