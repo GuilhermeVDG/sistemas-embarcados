@@ -26,7 +26,7 @@
 Este projeto implementa um sistema embarcado que integra tres interfaces de comunicacao:
 
 - **UART**, para receber comandos pelo terminal serial.
-- **I2C**, para ler sensores analogicos e escrever no DAC do PCF8591.
+- **I2C**, para ler sensores analogicos do PCF8591.
 - **SPI**, para controlar uma matriz de LEDs 8x8 com driver MAX7219.
 
 O usuario envia comandos como `Temp`, `Volt` e `LDR`. A placa le o canal correspondente no PCF8591, mostra o valor no terminal e atualiza a matriz alternando entre uma letra e um sinal `+` ou `-`.
@@ -37,7 +37,6 @@ O usuario envia comandos como `Temp`, `Volt` e `LDR`. A placa le o canal corresp
 - Comunicacao I2C com o PCF8591.
 - Interface de comandos via USART2.
 - Leitura dos canais AIN0, AIN1 e AIN3.
-- Escrita no DAC do PCF8591.
 - Exibicao de letras e sinais em matriz 8x8.
 - Atualizacao periodica do display usando `HAL_GetTick()`.
 
@@ -78,7 +77,7 @@ O usuario envia comandos como `Temp`, `Volt` e `LDR`. A placa le o canal corresp
 | Componente | Descricao | Uso no projeto |
 |---|---|---|
 | NUCLEO-L476RG | Placa STM32 principal | Controla todo o sistema |
-| PCF8591 | Modulo ADC/DAC I2C | Le sensores e controla DAC |
+| PCF8591 | Modulo ADC/DAC I2C | Le sensores analogicos |
 | MAX7219 8x8 LED Matrix | Matriz de LEDs com driver SPI | Exibe letras e sinais |
 | Cabo USB | Alimentacao, gravacao e terminal serial | Conexao com o PC |
 | Jumpers | Fios de conexao | Ligacao entre os modulos |
@@ -163,14 +162,6 @@ O usuario envia comandos como `Temp`, `Volt` e `LDR`. A placa le o canal corresp
 
 Configure o terminal em `115200 8N1` e envie os comandos com Enter.
 
-### Leitura direta
-
-| Comando | Funcao |
-|---|---|
-| `Read_AIN0` | Le AIN0 do PCF8591 |
-| `Read_AIN1` | Le AIN1 do PCF8591 |
-| `Read_AIN3` | Le AIN3 do PCF8591 |
-
 ### Exibicao na matriz
 
 | Comando | Acao |
@@ -178,12 +169,6 @@ Configure o terminal em `115200 8N1` e envie os comandos com Enter.
 | `Temp` | Le AIN0 e alterna `T` com `+` ou `-` |
 | `Volt` | Le AIN3 e alterna `V` com `+` ou `-` |
 | `LDR` | Le AIN1 e alterna `L` com `+` ou `-` |
-
-### DAC e comandos auxiliares
-
-| Comando | Acao |
-|---|---|
-| `Set_DAC_<valor>` | Escreve valor de 0 a 255 no DAC |
 | `Test` | Exibe padrao quadriculado na matriz |
 | `Clear` | Apaga a matriz |
 
@@ -201,8 +186,8 @@ Configure o terminal em `115200 8N1` e envie os comandos com Enter.
 | 6. Loop principal executa duas tarefas:                             |
 |      +-> UART_CheckCommand(): recebe comandos do terminal           |
 |      +-> Display_UpdateTask(): alterna caractere a cada 500 ms      |
-| 7. Comandos de leitura acessam o PCF8591 via I2C                    |
-| 8. Comandos Temp/Volt/LDR atualizam modo, valor e matriz via SPI    |
+| 7. Comandos Temp/Volt/LDR acessam o PCF8591 via I2C                 |
+| 8. A matriz e atualizada com a letra da grandeza e o sinal via SPI  |
 +---------------------------------------------------------------------+
 ```
 
@@ -303,10 +288,6 @@ A matriz deve exibir um padrao quadriculado por 1 segundo e apagar.
 |---|---|---|
 | SPI da matriz | `Test` | Padrao quadriculado aparece |
 | Limpeza da matriz | `Clear` | Todos os LEDs apagam |
-| Leitura AIN0 | `Read_AIN0` | Terminal exibe valor de 0 a 255 |
-| Leitura AIN1 | `Read_AIN1` | Terminal exibe valor de 0 a 255 |
-| Leitura AIN3 | `Read_AIN3` | Terminal exibe valor de 0 a 255 |
-| Escrita DAC | `Set_DAC_128` | Terminal confirma DAC em 128 |
 | Temperatura | `Temp` | Matriz alterna `T` e sinal |
 | Tensao | `Volt` | Matriz alterna `V` e sinal |
 | Luminosidade | `LDR` | Matriz alterna `L` e sinal |
@@ -321,7 +302,6 @@ A matriz deve exibir um padrao quadriculado por 1 segundo e apagar.
 | Matriz apagada | VCC/GND incorretos | Ligar VCC da matriz em 5V |
 | Matriz nao responde | DIN/CLK/CS errados | Conferir D11, D13 e D10 |
 | Padrao invertido | Orientacao fisica da matriz | Ajustar bitmaps no codigo |
-| Valor do DAC nao muda | Comando invalido | Usar `Set_DAC_0` ate `Set_DAC_255` |
 
 ---
 
@@ -360,7 +340,6 @@ Entrega_5_SPI/
 - [x] MAX7219 integrado via SPI.
 - [x] USART2 usada como terminal serial.
 - [x] Comandos de leitura analogica implementados.
-- [x] Escrita no DAC implementada.
 - [x] Matriz 8x8 exibe letras e sinais.
 - [x] Comandos `Test` e `Clear` implementados.
 - [x] Atualizacao da matriz sem `HAL_Delay()` no loop principal.
