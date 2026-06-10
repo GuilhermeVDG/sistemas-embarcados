@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdarg.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +47,16 @@ typedef enum
 #define PCF8591_CH1           0x01
 #define PCF8591_CH3           0x03
 #define PCF8591_DAC_ENABLE    0x40
+
+/*
+  MAPEAMENTO CORRIGIDO:
+  LDR  = AIN0
+  TEMP = AIN1
+  VOLT = AIN3
+*/
+#define PCF8591_CH_LDR        PCF8591_CH0
+#define PCF8591_CH_TEMP       PCF8591_CH1
+#define PCF8591_CH_VOLT       PCF8591_CH3
 
 /* MAX7219 registers */
 #define MAX7219_REG_NOOP      0x00
@@ -93,10 +104,6 @@ static volatile uint8_t current_channel = 0;
 static volatile PcfOperation_t pending_pcf_operation = PCF_OP_NONE;
 static volatile DisplayMode_t pending_display_mode = DISPLAY_NONE;
 
-/*
-  Cada byte representa uma linha da matriz 8x8.
-  Dependendo da orientação física da sua matriz, pode ser necessário inverter linhas/colunas.
-*/
 static const uint8_t CHAR_T[8] =
 {
   0b11111111,
@@ -200,8 +207,6 @@ static void Display_UpdateTask(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#include <stdarg.h>
-
 static void UART_Print(const char *msg)
 {
   HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), 100);
@@ -235,11 +240,11 @@ static void MAX7219_Init(void)
 {
   HAL_Delay(100);
 
-  MAX7219_Write(MAX7219_REG_TEST, 0x00);       // Desliga display test
-  MAX7219_Write(MAX7219_REG_DECODE, 0x00);     // No-decode para matriz 8x8
-  MAX7219_Write(MAX7219_REG_SCANLIMIT, 0x07);  // Usa as 8 linhas/dígitos
-  MAX7219_Write(MAX7219_REG_INTENSITY, 0x03);  // Brilho baixo/medio
-  MAX7219_Write(MAX7219_REG_SHUTDOWN, 0x01);   // Normal operation
+  MAX7219_Write(MAX7219_REG_TEST, 0x00);
+  MAX7219_Write(MAX7219_REG_DECODE, 0x00);
+  MAX7219_Write(MAX7219_REG_SCANLIMIT, 0x07);
+  MAX7219_Write(MAX7219_REG_INTENSITY, 0x03);
+  MAX7219_Write(MAX7219_REG_SHUTDOWN, 0x01);
 
   MAX7219_Clear();
 }
@@ -272,13 +277,7 @@ static HAL_StatusTypeDef __attribute__((unused)) PCF8591_ReadChannel(uint8_t cha
     return HAL_ERROR;
   }
 
-  /*
-    PCF8591 control byte:
-    bit 6 = 1 habilita analog output/DAC
-    bits 1:0 selecionam canal ADC
-    Aqui mantemos DAC habilitado para preservar o último valor configurado.
-  */
-  uint8_t control_byte = 0x40 | (channel & 0x03);
+  uint8_t control_byte = PCF8591_DAC_ENABLE | (channel & 0x03);
   uint8_t rx_data[2] = {0};
 
   if (HAL_I2C_Master_Transmit(&hi2c1, PCF8591_ADDR, &control_byte, 1, 100) != HAL_OK)
@@ -286,10 +285,6 @@ static HAL_StatusTypeDef __attribute__((unused)) PCF8591_ReadChannel(uint8_t cha
     return HAL_ERROR;
   }
 
-  /*
-    No PCF8591, a primeira leitura pode vir como conversão anterior.
-    Por isso lemos 2 bytes e usamos o segundo.
-  */
   if (HAL_I2C_Master_Receive(&hi2c1, PCF8591_ADDR, rx_data, 2, 100) != HAL_OK)
   {
     return HAL_ERROR;
@@ -303,8 +298,8 @@ static HAL_StatusTypeDef __attribute__((unused)) PCF8591_SetDAC(uint8_t value)
 {
   uint8_t tx_data[2];
 
-  tx_data[0] = 0x40;   // Habilita DAC
-  tx_data[1] = value;  // Valor de 0 a 255
+  tx_data[0] = PCF8591_DAC_ENABLE;
+  tx_data[1] = value;
 
   if (HAL_I2C_Master_Transmit(&hi2c1, PCF8591_ADDR, tx_data, 2, 100) != HAL_OK)
   {
@@ -345,7 +340,7 @@ static void PCF8591_StartRead(uint8_t channel, DisplayMode_t display_mode)
   pending_display_mode = display_mode;
   pending_pcf_operation = (display_mode == DISPLAY_NONE) ? PCF_OP_READ_DIRECT : PCF_OP_READ_DISPLAY;
 
-  i2c_tx_buffer[0] = channel;
+  i2c_tx_buffer[0] = PCF8591_DAC_ENABLE | (channel & 0x03);
 
   if (HAL_I2C_Master_Transmit_IT(&hi2c1, PCF8591_ADDR, i2c_tx_buffer, 1) != HAL_OK)
   {
@@ -375,18 +370,18 @@ static void Process_Command(char *cmd)
 
   if (strcmp(cmd, "Temp") == 0)
   {
-    UART_Print("Lendo temperatura/AIN0...\r\n");
-    PCF8591_StartRead(PCF8591_CH0, DISPLAY_TEMP);
+    UART_Print("Lendo temperatura/AIN1...\r\n");
+    PCF8591_StartRead(PCF8591_CH_TEMP, DISPLAY_TEMP);
   }
   else if (strcmp(cmd, "Volt") == 0)
   {
     UART_Print("Lendo tensao/AIN3...\r\n");
-    PCF8591_StartRead(PCF8591_CH3, DISPLAY_VOLT);
+    PCF8591_StartRead(PCF8591_CH_VOLT, DISPLAY_VOLT);
   }
   else if (strcmp(cmd, "LDR") == 0)
   {
-    UART_Print("Lendo luminosidade/AIN1...\r\n");
-    PCF8591_StartRead(PCF8591_CH1, DISPLAY_LDR);
+    UART_Print("Lendo luminosidade/AIN0...\r\n");
+    PCF8591_StartRead(PCF8591_CH_LDR, DISPLAY_LDR);
   }
   else if (strcmp(cmd, "Clear") == 0)
   {
@@ -487,16 +482,8 @@ static void Display_UpdateTask(void)
 
 /* USER CODE END 0 */
 
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
   HAL_Init();
 
   SystemClock_Config();
@@ -517,6 +504,10 @@ int main(void)
   UART_Print("Caso de teste iniciado\r\n");
   UART_Print("Baud: 115200\r\n");
   UART_Print("Digite um comando e pressione ENTER\r\n");
+  UART_Print("Mapeamento corrigido:\r\n");
+  UART_Print("  Temp -> AIN1\r\n");
+  UART_Print("  Volt -> AIN3\r\n");
+  UART_Print("  LDR  -> AIN0\r\n");
   UART_Print("Comandos:\r\n");
   UART_Print("  Temp\r\n");
   UART_Print("  Volt\r\n");
@@ -535,8 +526,6 @@ int main(void)
 
   while (1)
   {
-    /* USER CODE BEGIN WHILE */
-
     if (uart_cmd_ready)
     {
       uart_cmd_ready = 0;
@@ -547,12 +536,7 @@ int main(void)
     }
 
     Display_UpdateTask();
-
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
   }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -598,11 +582,6 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
 static void MX_I2C1_Init(void)
 {
   hi2c1.Instance = I2C1;
@@ -631,11 +610,6 @@ static void MX_I2C1_Init(void)
   }
 }
 
-/**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
 static void MX_SPI1_Init(void)
 {
   hspi1.Instance = SPI1;
@@ -659,11 +633,6 @@ static void MX_SPI1_Init(void)
   }
 }
 
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
 static void MX_USART2_UART_Init(void)
 {
   huart2.Instance = USART2;
@@ -683,11 +652,6 @@ static void MX_USART2_UART_Init(void)
   }
 }
 
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -788,7 +752,7 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 
         if (display_mode == DISPLAY_TEMP)
         {
-          UART_Printf("Temperatura/AIN0 = %u\r\n", value);
+          UART_Printf("Temperatura/AIN1 = %u\r\n", value);
           UART_Printf("Matriz: T alternando com %c\r\n", (value < 128U) ? '-' : '+');
         }
         else if (display_mode == DISPLAY_VOLT)
@@ -798,7 +762,7 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
         }
         else if (display_mode == DISPLAY_LDR)
         {
-          UART_Printf("Luminosidade/AIN1 = %u\r\n", value);
+          UART_Printf("Luminosidade/AIN0 = %u\r\n", value);
           UART_Printf("Matriz: L alternando com %c\r\n", (value < 128U) ? '-' : '+');
         }
       }
@@ -819,10 +783,6 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 
 /* USER CODE END 4 */
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
 void Error_Handler(void)
 {
   __disable_irq();
