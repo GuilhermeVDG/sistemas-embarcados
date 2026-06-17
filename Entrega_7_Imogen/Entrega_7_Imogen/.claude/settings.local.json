@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/guilherme/Desktop/PROJECTS/sistemas-embarcados/Entrega_7_Imogen/backend/app/routes)",
+      "Bash(mkdir -p /Users/guilherme/Desktop/PROJECTS/sistemas-embarcados/Entrega_7_Imogen/backend/data)",
+      "Bash(mkdir -p /Users/guilherme/Desktop/PROJECTS/sistemas-embarcados/Entrega_7_Imogen/backend/src/measurements/dto)",
+      "Bash(mkdir -p /Users/guilherme/Desktop/PROJECTS/sistemas-embarcados/Entrega_7_Imogen/backend/src/serial)"
+    ]
+  }
+}
