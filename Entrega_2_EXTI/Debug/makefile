@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := LED_EXTI_FREQUENCIA
+BUILD_ARTIFACT_NAME := Entrega_2_EXTI
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-LED_EXTI_FREQUENCIA.elf \
+Entrega_2_EXTI.elf \
 
 MAP_FILES += \
-LED_EXTI_FREQUENCIA.map \
+Entrega_2_EXTI.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-LED_EXTI_FREQUENCIA.list \
+Entrega_2_EXTI.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: LED_EXTI_FREQUENCIA.elf secondary-outputs
+main-build: Entrega_2_EXTI.elf secondary-outputs
 
 # Tool invocations
-LED_EXTI_FREQUENCIA.elf LED_EXTI_FREQUENCIA.map: $(OBJS) $(USER_OBJS) C:\Users\USER\STM32CubeIDE\workspace_1.10.1\LED_EXTI_FREQUENCIA\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LED_EXTI_FREQUENCIA.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\USER\STM32CubeIDE\workspace_1.10.1\LED_EXTI_FREQUENCIA\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LED_EXTI_FREQUENCIA.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Entrega_2_EXTI.elf Entrega_2_EXTI.map: $(OBJS) $(USER_OBJS) C:\Users\USER\STM32CubeIDE\workspace_1.10.1\Entrega_2_EXTI\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Entrega_2_EXTI.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\USER\STM32CubeIDE\workspace_1.10.1\Entrega_2_EXTI\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Entrega_2_EXTI.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-LED_EXTI_FREQUENCIA.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "LED_EXTI_FREQUENCIA.list"
+Entrega_2_EXTI.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Entrega_2_EXTI.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) LED_EXTI_FREQUENCIA.elf LED_EXTI_FREQUENCIA.list LED_EXTI_FREQUENCIA.map default.size.stdout
+	-$(RM) Entrega_2_EXTI.elf Entrega_2_EXTI.list Entrega_2_EXTI.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
